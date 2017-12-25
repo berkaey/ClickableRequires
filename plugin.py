@@ -6,7 +6,7 @@ import json
 import webbrowser
 
 REQUIRE_REGEXP = '(require\s*\(\s*[\'"])(.+?)[\'"]\s*\)'
-IMPORT_REGEXP = '((?:(?:import)|(?:export)\s*)(?:.+?)(?:from\s*)?[\'"])(.+?)[\'"];?'
+IMPORT_REGEXP = '(((?:(?:import)|(?:export)\s*))?(?:.+?)(?:from\s*)[\'"])(.+?)[\'"];?'
 
 class EsFoldImportsListener(sublime_plugin.EventListener):
 
@@ -128,6 +128,7 @@ class RequireEventListener(sublime_plugin.EventListener):
     for region in import_regions:
       statement = view.substr(region)
       match = re.match(IMPORT_REGEXP, statement)
+      log(match.groups())
 
       module = match.group(len(match.groups()))
 
@@ -253,7 +254,24 @@ def find_module(window, module):
     if match:
       log('Found import module: ', match)
 
-  return returnIfFile(match)
+  if not match or not returnIfFile(match):
+    if module.startswith("/"):
+      for ext in [".jsx",".js","/index.js"]:
+        project_path = ctx['project_path']
+        
+        file_path = project_path+module+ext
+
+        file = returnIfFile(file_path)
+        
+        log(project_path,file_path,"YO")
+
+        if file:
+          return file
+
+  if returnIfFile(match):
+    return returnIfFile(match)
+  
+  return returnIfFile(match,module)
 
 
 def find_import_module(module, project_path, webpack_modules, webpack_extensions):
